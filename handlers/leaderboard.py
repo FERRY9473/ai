@@ -196,17 +196,53 @@ async def show_rank(message):
     # Check if user has premium badge item
     is_premium = "rank_card" in user_data.get("inventory", [])
 
+    # RPG Data for Image integration
+    from handlers.rpg import get_player_stats
+    p_atk, p_def = get_player_stats(user_data)
+    rpg_data = {
+        "class": user_data.get("rpg_class", "Novice"),
+        "hp": user_data.get("hp", 100),
+        "max_hp": user_data.get("max_hp", 100),
+        "atk": p_atk,
+        "def": p_def,
+        "stamina": user_data.get("stamina", 20)
+    }
+
     try:
-        # Generate and Send Image
-        image = await generate_profile_card(name, level, xp, next_level_xp, coins, my_rank, pfp_bytes, is_premium=is_premium)
-        await bot.send_photo(message.chat.id, image)
+        # Generate and Send Image with RPG data
+        image = await generate_profile_card(name, level, xp, next_level_xp, coins, my_rank, pfp_bytes, is_premium=is_premium, rpg_data=rpg_data)
+        
+        # NAVIGATION BUTTONS
+        markup = types.InlineKeyboardMarkup()
+        if not user_data.get("rpg_class"):
+            # Jika belum pilih class, tampilkan tombol ajakan
+            markup.add(types.InlineKeyboardButton("🎭 Pilih Class Hero Sekarang!", callback_data="rpg_choose_class_start"))
+        else:
+            # Jika sudah punya class, tampilkan navigasi normal
+            markup.row(types.InlineKeyboardButton("⚔️ Adventure", callback_data="rpg_adventure_start"), 
+                       types.InlineKeyboardButton("🎒 Inventory", callback_data="rpg_inv"))
+            markup.add(types.InlineKeyboardButton("🛒 RPG Shop", callback_data="rpg_shop_open"))
+
+        await bot.send_photo(message.chat.id, image, reply_markup=markup)
     except Exception as e:
         # Fallback to text if image generation fails
         progress_xp = xp - ((level - 1) * 100)
         progress = max(0, min(1, progress_xp / 100))
         progress_bar = "▰" * int(progress * 10) + "▱" * (10 - int(progress * 10))
         
-        text = f"👤 *PROFIL ANDA*\n\n⭐️ Level: `{level}`\n✨ XP: `{xp} / {next_level_xp}`\n💰 Koin: `{coins}`\n🏆 Rank: `#{my_rank}`\n\n`{progress_bar}` ({int(progress*100)}%)"
+        text = (
+            f"👤 *PROFIL ANDA*\n"
+            f"━━━━━━━━━━━━━━━━━━━━\n"
+            f"⭐️ Level: `{level}`\n"
+            f"✨ XP: `{xp} / {next_level_xp}`\n"
+            f"💰 Koin: `{coins}`\n"
+            f"🏆 Rank: `#{my_rank}`\n\n"
+            f"🛡 *RPG Stats:*\n"
+            f"├ Class: `{rpg_data['class']}`\n"
+            f"├ HP: `{rpg_data['hp']}/{rpg_data['max_hp']}`\n"
+            f"└ ATK: `{p_atk}` | DEF: `{p_def}`\n\n"
+            f"`{progress_bar}` ({int(progress*100)}%)"
+        )
         await safe_reply(message, text, parse_mode="Markdown")
 
 @bot.message_handler(commands=['pay', 'transfer'])

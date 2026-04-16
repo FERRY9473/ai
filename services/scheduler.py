@@ -93,6 +93,65 @@ async def process_reminder(client, chat_id, city, current_time, today):
             except Exception as e:
                 logger.error(f"Failed to send reminder to {chat_id}: {e}")
 
+from services.rag_engine import rag
+import os
+
+async def auto_index_docs():
+    """Background task to automatically index documents in the rag_docs folder"""
+    logger.info("RAG Document Auto-Indexer started.")
+    docs_dir = "ai/downloads/rag_docs/"
+    indexed_files_cache = set()
+    
+    while True:
+        try:
+            if os.path.exists(docs_dir):
+                files = [f for f in os.listdir(docs_dir) if f.lower().endswith('.pdf')]
+                for file in files:
+                    file_path = os.path.join(docs_dir, file)
+                    if file_path not in indexed_files_cache:
+                        logger.info(f"Auto-indexing new document: {file}")
+                        result = await rag.process_pdf(file_path)
+                        logger.info(f"RAG Index Result for {file}: {result}")
+                        indexed_files_cache.add(file_path)
+            
+        except Exception as e:
+            logger.error(f"RAG Auto-Indexer Error: {e}")
+            
+        # Periksa file baru setiap 5 menit
+        await asyncio.sleep(300)
+
+async def rpg_recovery():
+    """Background task to recover HP and Stamina for all users every 10 minutes"""
+    logger.info("RPG Recovery task started.")
+    while True:
+        try:
+            # Gunakan list(db.users.keys()) untuk menghindari error 'dictionary changed size during iteration'
+            user_ids = list(db.users.keys())
+            for user_id in user_ids:
+                data = db.get_user(user_id) # Ini akan otomatis memberikan nilai default jika belum ada
+                changed = False
+                
+                # Recover 5 HP
+                if data.get("hp", 0) < data.get("max_hp", 100):
+                    data["hp"] = min(data["max_hp"], data["hp"] + 5)
+                    changed = True
+                
+                # Recover 2 Stamina
+                if data.get("stamina", 0) < data.get("max_stamina", 20):
+                    data["stamina"] = min(data["max_stamina"], data["stamina"] + 2)
+                    changed = True
+                
+                if changed:
+                    db.update_user(user_id, data)
+        except Exception as e:
+            logger.error(f"RPG Recovery Error: {e}")
+        
+        await asyncio.sleep(600) # 10 minutes
+
 def start_scheduler():
-    # Create the task in the existing loop
+    # Start Prayer Scheduler
     asyncio.create_task(check_prayer_times())
+    # Start RAG Document Indexer
+    asyncio.create_task(auto_index_docs())
+    # Start RPG Recovery
+    asyncio.create_task(rpg_recovery())

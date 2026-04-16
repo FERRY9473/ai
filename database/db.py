@@ -3,9 +3,10 @@ from config import DATABASE_PATH
 import os
 
 def get_db(table="main"):
-    """Get a database table instance"""
+    """Get a database table instance with WAL mode optimization"""
     os.makedirs(os.path.dirname(DATABASE_PATH), exist_ok=True)
-    return SqliteDict(DATABASE_PATH, tablename=table, autocommit=True)
+    # Gunakan journal_mode='WAL' untuk performa baca-tulis yang lebih baik
+    return SqliteDict(DATABASE_PATH, tablename=table, autocommit=True, journal_mode="WAL")
 
 class DBManager:
     def __init__(self):
@@ -26,10 +27,26 @@ class DBManager:
             "sholat_remind": False,
             "city": "jakarta",
             "first_name": None,
-            "inventory": []
+            "inventory": [],
+            # RPG Stats
+            "rpg_class": None,
+            "hp": 100,
+            "max_hp": 100,
+            "mp": 50,
+            "max_mp": 50,
+            "atk": 10,
+            "def": 5,
+            "stamina": 20,
+            "max_stamina": 20,
+            "last_adventure": 0,
+            "kills": 0,
+            "deaths": 0,
+            "weapon": {"name": "Tangan Kosong", "atk": 0},
+            "armor": {"name": "Pakaian Biasa", "def": 0},
+            "skills": []
         }
         data = self.users.get(str(user_id), {})
-        # Merge defaults with existing data to ensure all keys exist
+        # Merge defaults with existing data
         for k, v in defaults.items():
             if k not in data:
                 data[k] = v

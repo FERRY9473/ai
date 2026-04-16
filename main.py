@@ -23,6 +23,7 @@ import handlers.shop
 import handlers.quests
 import handlers.features
 import handlers.admin
+import handlers.rpg
 
 # Middleware to track users and groups (Async version)
 class UserTrackerMiddleware(BaseMiddleware):
@@ -84,13 +85,21 @@ class UserTrackerMiddleware(BaseMiddleware):
 bot.setup_middleware(UserTrackerMiddleware())
 
 
-# Configure Logging
+from logging.handlers import RotatingFileHandler
+
+# Configure Logging with Rotation
+log_handler = RotatingFileHandler(
+    "ai/bot.log", 
+    maxBytes=10*1024*1024, # 10 MB per file
+    backupCount=5,         # Simpan hingga 5 file lama
+    encoding='utf-8'
+)
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    format='%(asctime)s - [%(levelname)s] - %(name)s - %(message)s',
     handlers=[
         logging.StreamHandler(),
-        logging.FileHandler("ai/bot.log")
+        log_handler
     ]
 )
 logger = logging.getLogger(BOT_NAME)

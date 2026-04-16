@@ -56,6 +56,7 @@ async def sholat_handler(message):
         await safe_reply(message, res["error"])
     else:
         await safe_reply(message, res["message"])
+from services.bmkg import get_gempa, get_weather
 
 @bot.message_handler(commands=['gempa'])
 async def gempa_handler(message):
@@ -72,7 +73,7 @@ async def gempa_handler(message):
 async def cuaca_handler(message):
     chat_id = message.chat.id
     is_group = message.chat.type in ['group', 'supergroup']
-    
+
     query = message.text.split(maxsplit=1)
     if len(query) > 1:
         city = query[1]
@@ -82,10 +83,14 @@ async def cuaca_handler(message):
         city = data.get("city")
         if not city:
             return await safe_reply(message, "📍 Ketik nama kota. Contoh: `/cuaca Jakarta`\nAtau atur kota utama dengan `/setcity <kota>`")
-    
-    # FIXED: Added await
+
+    m = await safe_reply(message, f"🔍 *Mencari data cuaca untuk {city}...*")
     res = await get_weather(city)
-    await safe_reply(message, res)
+
+    if "error" in res:
+        await bot.edit_message_text(res["error"], message.chat.id, m.message_id, parse_mode='Markdown')
+    else:
+        await bot.edit_message_text(res["message"], message.chat.id, m.message_id, parse_mode='Markdown')
 
 @bot.message_handler(commands=['wiki', 'wikipedia'])
 async def wiki_handler(message):

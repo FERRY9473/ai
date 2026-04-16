@@ -7,7 +7,7 @@ import logging
 def is_owner(user_id):
     return user_id in [OWNER_ID, ADMIN_ID]
 
-@bot.message_handler(commands=['stats'])
+@bot.message_handler(commands=['botstats'])
 async def stats_handler(message):
     if not is_owner(message.from_user.id):
         return
