@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  aphrodite:
+    build: .
+    container_name: aphrodite_bot
+    restart: always
+    env_file:
+      - .env
+    volumes:
+      - ./ai:/app/ai
+      - ./database:/app/database
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10mb"
+        max-file: "3"
